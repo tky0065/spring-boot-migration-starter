@@ -1,15 +1,12 @@
 package com.enokdev.spring_boot_migration_starter.service;
 
-import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
-import org.springframework.stereotype.Service;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-@Service
 public class MigrationTemplateGenerator {
     
     private final ResourceLoader resourceLoader;
@@ -17,36 +14,29 @@ public class MigrationTemplateGenerator {
     public MigrationTemplateGenerator(ResourceLoader resourceLoader) {
         this.resourceLoader = resourceLoader;
     }
-
-    public void generateInitialMigrations(String migrationType) {
-        if ("flyway".equalsIgnoreCase(migrationType)) {
+    
+    public void generateInitialMigrations(String type) {
+        if ("flyway".equalsIgnoreCase(type)) {
             generateFlywayMigration();
-        } else if ("liquibase".equalsIgnoreCase(migrationType)) {
+        } else if ("liquibase".equalsIgnoreCase(type)) {
             generateLiquibaseMigration();
         }
     }
-
+    
     private void generateFlywayMigration() {
         String migrationPath = "src/main/resources/db/migration";
         createDirectory(migrationPath);
         
         String initSql = "-- Initial Flyway migration\n" +
-                        "CREATE TABLE IF NOT EXISTS flyway_schema_history (\n" +
-                        "    installed_rank INT NOT NULL,\n" +
-                        "    version VARCHAR(50),\n" +
-                        "    description VARCHAR(200),\n" +
-                        "    type VARCHAR(20),\n" +
-                        "    script VARCHAR(1000),\n" +
-                        "    checksum INT,\n" +
-                        "    installed_by VARCHAR(100),\n" +
-                        "    installed_on TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n" +
-                        "    execution_time INT,\n" +
-                        "    success BOOLEAN\n" +
+                        "CREATE TABLE IF NOT EXISTS example (\n" +
+                        "    id BIGINT AUTO_INCREMENT PRIMARY KEY,\n" +
+                        "    name VARCHAR(255) NOT NULL,\n" +
+                        "    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n" +
                         ");";
         
         writeFile(Paths.get(migrationPath, "V1__init.sql"), initSql);
     }
-
+    
     private void generateLiquibaseMigration() {
         String changelogPath = "src/main/resources/db/changelog";
         createDirectory(changelogPath);
@@ -69,7 +59,7 @@ public class MigrationTemplateGenerator {
         
         writeFile(Paths.get(changelogPath, "db.changelog-master.yaml"), masterChangelog);
     }
-
+    
     private void createDirectory(String path) {
         try {
             Files.createDirectories(Paths.get(path));
@@ -77,7 +67,7 @@ public class MigrationTemplateGenerator {
             throw new RuntimeException("Failed to create directory: " + path, e);
         }
     }
-
+    
     private void writeFile(Path path, String content) {
         try {
             if (!Files.exists(path)) {
