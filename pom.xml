@@ -10,7 +10,8 @@
         <relativePath/>
     </parent>
     
-    <groupId>com.enokdev</groupId>
+    <!-- Update groupId to match your approved namespace -->
+    <groupId>io.github.tky0065</groupId>
     <artifactId>spring-boot-migration-starter</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>Spring Boot Migration Starter</name>
