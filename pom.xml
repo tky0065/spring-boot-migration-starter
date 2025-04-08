@@ -15,7 +15,7 @@
     <version>0.0.1-SNAPSHOT</version>
     <name>Spring Boot Migration Starter</name>
     <description>A Spring Boot Starter for automatic database migrations with Flyway and Liquibase</description>
-    <url>https://github.com/yourusername/spring-boot-migration-starter</url>
+    <url>https://github.com/tky0065/spring-boot-migration-starter</url>
 
     <licenses>
         <license>
@@ -34,9 +34,9 @@
     </developers>
 
     <scm>
-        <connection>scm:git:git://github.com/yourusername/spring-boot-migration-starter.git</connection>
-        <developerConnection>scm:git:ssh://github.com:yourusername/spring-boot-migration-starter.git</developerConnection>
-        <url>https://github.com/yourusername/spring-boot-migration-starter/tree/main</url>
+        <connection>scm:git:git://github.com/tky0065/spring-boot-migration-starter.git</connection>
+        <developerConnection>scm:git:ssh://github.com:tky0065/spring-boot-migration-starter.git</developerConnection>
+        <url>https://github.com/tky0065/spring-boot-migration-starter/tree/main</url>
     </scm>
 
     <distributionManagement>
