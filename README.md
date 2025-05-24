@@ -27,14 +27,14 @@ Ajoutez la dépendance à votre projet Maven :
 <dependency>
     <groupId>io.github.tky0065</groupId>
     <artifactId>spring-boot-migration-starter</artifactId>
-    <version>0.0.3</version>
+    <version>0.0.4</version>
 </dependency>
 ```
 
 Ou pour Gradle :
 
 ```gradle
-implementation 'io.github.tky0065:spring-boot-migration-starter:0.0.3'
+implementation 'io.github.tky0065:spring-boot-migration-starter:0.0.4'
 ```
 
 ## Configuration
@@ -133,6 +133,60 @@ Exemple de changelog Liquibase :
 </databaseChangeLog>
 ```
 
+## Résolution des problèmes courants
+
+### Erreur avec les mots réservés SQL
+
+Si vous rencontrez une erreur comme celle-ci :
+```
+Syntax error in SQL statement "create table [*]user (id bigint not null, primary key (id))"; expected "identifier";
+```
+
+C'est parce que votre table utilise un nom qui est un mot réservé SQL (comme "user", "order", "group", etc.). Pour résoudre ce problème :
+
+#### Solution 1 : Échapper les noms de tables
+
+Utilisez des guillemets pour échapper les noms de tables dans vos scripts de migration :
+
+Avec Flyway :
+```sql
+CREATE TABLE "user" (
+    id BIGINT PRIMARY KEY,
+    username VARCHAR(255) NOT NULL
+);
+```
+
+Avec Liquibase :
+```xml
+<createTable tableName="&quot;user&quot;">
+    <!-- colonnes -->
+</createTable>
+```
+
+#### Solution 2 : Configuration JPA (pour les entités)
+
+Si vous utilisez des entités JPA avec Hibernate, vous pouvez également configurer l'échappement au niveau de l'application :
+
+```java
+@Entity
+@Table(name = "\"user\"")  // Nom échappé
+public class User {
+    // ...
+}
+```
+
+Ou en configurant la stratégie de nommage dans `application.properties` :
+```properties
+spring.jpa.properties.hibernate.globally_quoted_identifiers=true
+```
+
+#### Solution 3 : Renommer vos tables
+
+La meilleure pratique est d'éviter complètement les mots réservés en utilisant des noms plus descriptifs :
+- `user` → `app_user` ou `users`
+- `order` → `customer_order` ou `orders`
+- `group` → `user_group` ou `groups`
+
 ## Services disponibles
 
 Le starter fournit ces services injectables :
@@ -155,27 +209,4 @@ migrationService.validate();
 migrationService.repair();
 ```
 
-## Avantages par rapport à la configuration manuelle
-
-- Configuration automatique basée sur des propriétés simples
-- Bascule facile entre Flyway et Liquibase sans changer le code
-- Génération de templates de migration à l'initialisation
-- Paramètres pré-configurés avec des valeurs recommandées
-
-## Contribuer
-
-Les contributions sont les bienvenues ! N'hésitez pas à ouvrir une issue ou un pull request sur GitHub.
-
-1. Fork le projet
-2. Créez une branche pour votre fonctionnalité (`git checkout -b feature/amazing-feature`)
-3. Committez vos changements (`git commit -m 'Add some amazing feature'`)
-4. Push sur la branche (`git push origin feature/amazing-feature`)
-5. Ouvrez un Pull Request
-
-## License
-
-Ce projet est distribué sous la licence MIT. Voir le fichier `LICENSE` pour plus d'informations.
-
-## Auteurs
-
-- [enokdev](https://enok-dev.vercel.app/) - Créateur et mainteneur principal
+## Avantages par rapport

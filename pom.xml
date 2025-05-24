@@ -13,7 +13,7 @@
     <!-- Update groupId to match your approved namespace -->
     <groupId>io.github.tky0065</groupId>
     <artifactId>spring-boot-migration-starter</artifactId>
-    <version>0.0.3</version>
+    <version>0.0.6</version>
     <name>Spring Boot Migration Starter</name>
     <description>A Spring Boot Starter for automatic database migrations with Flyway and Liquibase</description>
     <url>https://github.com/tky0065/spring-boot-migration-starter</url>
@@ -56,6 +56,7 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
+
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
