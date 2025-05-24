@@ -1,13 +1,12 @@
-package com.enokdev.spring_boot_migration_starter.service;
+package io.github.tky0065.spring_boot_migration_starter.service;
 
-import com.enokdev.spring_boot_migration_starter.config.MigrationProperties;
+import io.github.tky0065.spring_boot_migration_starter.config.MigrationProperties;
 import liquibase.Liquibase;
 import liquibase.database.Database;
 import liquibase.database.DatabaseFactory;
 import liquibase.database.jvm.JdbcConnection;
 import liquibase.exception.LiquibaseException;
 import liquibase.resource.ClassLoaderResourceAccessor;
-import lombok.SneakyThrows;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.sql.Connection;
@@ -16,7 +15,7 @@ import java.util.function.Consumer;
 
 @Service
 public class LiquibaseMigrationService implements MigrationService {
-    
+
     @Autowired
     private DataSource dataSource;
 
@@ -35,19 +34,24 @@ public class LiquibaseMigrationService implements MigrationService {
             try {
                 liquibase.update("");
             } catch (LiquibaseException e) {
-                throw new RuntimeException(e);
+                throw new RuntimeException("Failed to update database schema", e);
             }
         });
     }
 
-    @SneakyThrows
     @Override
     public void validate() {
         if (!properties.isEnabled()) {
             return;
         }
 
-        executeWithLiquibase(Liquibase::validate);
+        executeWithLiquibase(liquibase -> {
+            try {
+                liquibase.validate();
+            } catch (LiquibaseException e) {
+                throw new RuntimeException("Failed to validate database schema", e);
+            }
+        });
     }
 
     @Override
@@ -56,8 +60,7 @@ public class LiquibaseMigrationService implements MigrationService {
             return;
         }
 
-        // Liquibase doesn't have a direct repair equivalent
-        // We could improve this with a more tailored implementation if needed
+        // Liquibase n'a pas d'équivalent direct à repair
         migrate();
     }
 

@@ -1,4 +1,4 @@
-package com.enokdev.spring_boot_migration_starter.service;
+package io.github.tky0065.spring_boot_migration_starter.service;
 
 public interface MigrationService {
     void migrate();

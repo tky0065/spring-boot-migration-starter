@@ -1,2 +1,2 @@
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
-com.enokdev.spring_boot_migration_starter.config.DatabaseMigrationAutoConfiguration
+io.github.tky0065.spring_boot_migration_starter.config.DatabaseMigrationAutoConfiguration

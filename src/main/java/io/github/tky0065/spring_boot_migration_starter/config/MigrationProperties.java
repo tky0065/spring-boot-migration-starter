@@ -1,4 +1,4 @@
-package com.enokdev.spring_boot_migration_starter.config;
+package io.github.tky0065.spring_boot_migration_starter.config;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;

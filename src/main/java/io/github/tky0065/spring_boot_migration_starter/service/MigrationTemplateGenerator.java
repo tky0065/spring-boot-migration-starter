@@ -1,12 +1,11 @@
-package com.enokdev.spring_boot_migration_starter.service;
+package io.github.tky0065.spring_boot_migration_starter.service;
 
-import com.enokdev.spring_boot_migration_starter.config.MigrationProperties;
+import io.github.tky0065.spring_boot_migration_starter.config.MigrationProperties;
 import org.springframework.core.io.ResourceLoader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.sql.Connection;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import org.slf4j.Logger;

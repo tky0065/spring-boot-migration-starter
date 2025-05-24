@@ -1,12 +1,10 @@
-package com.enokdev.spring_boot_migration_starter.config;
+package io.github.tky0065.spring_boot_migration_starter.config;
 
-import com.enokdev.spring_boot_migration_starter.service.FlywayMigrationService;
-import com.enokdev.spring_boot_migration_starter.service.LiquibaseMigrationService;
-import com.enokdev.spring_boot_migration_starter.service.MigrationService;
-import com.enokdev.spring_boot_migration_starter.service.MigrationTemplateGenerator;
-import org.springframework.beans.factory.annotation.Autowired;
+import io.github.tky0065.spring_boot_migration_starter.service.FlywayMigrationService;
+import io.github.tky0065.spring_boot_migration_starter.service.LiquibaseMigrationService;
+import io.github.tky0065.spring_boot_migration_starter.service.MigrationService;
+import io.github.tky0065.spring_boot_migration_starter.service.MigrationTemplateGenerator;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;

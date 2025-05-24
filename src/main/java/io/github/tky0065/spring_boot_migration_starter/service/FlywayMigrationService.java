@@ -1,6 +1,6 @@
-package com.enokdev.spring_boot_migration_starter.service;
+package io.github.tky0065.spring_boot_migration_starter.service;
 
-import com.enokdev.spring_boot_migration_starter.config.MigrationProperties;
+import io.github.tky0065.spring_boot_migration_starter.config.MigrationProperties;
 import org.flywaydb.core.Flyway;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
