@@ -7,15 +7,18 @@ import io.github.tky0065.spring_boot_migration_starter.service.MigrationTemplate
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration;
+import org.springframework.boot.autoconfigure.liquibase.LiquibaseAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.io.ResourceLoader;
+import org.springframework.context.annotation.Primary;
 
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@AutoConfiguration
+@AutoConfiguration(before = {FlywayAutoConfiguration.class, LiquibaseAutoConfiguration.class})
 @EnableConfigurationProperties(MigrationProperties.class)
 public class DatabaseMigrationAutoConfiguration {
 
@@ -33,6 +36,15 @@ public class DatabaseMigrationAutoConfiguration {
         if (properties.getLocations().isEmpty() && properties.getLocation() != null) {
             properties.getLocations().add(properties.getLocation());
         }
+
+        // Configure proper spring.flyway.enabled or spring.liquibase.enabled based on selection
+        if ("liquibase".equalsIgnoreCase(properties.getType())) {
+            System.setProperty("spring.flyway.enabled", "false");
+            System.setProperty("spring.liquibase.enabled", String.valueOf(properties.isEnabled()));
+        } else {
+            System.setProperty("spring.liquibase.enabled", "false");
+            System.setProperty("spring.flyway.enabled", String.valueOf(properties.isEnabled()));
+        }
     }
 
     @Bean
@@ -49,6 +61,7 @@ public class DatabaseMigrationAutoConfiguration {
     }
 
     @Bean
+    @Primary
     @ConditionalOnProperty(prefix = "db.migration", name = "type", havingValue = "flyway", matchIfMissing = true)
     @ConditionalOnMissingBean(MigrationService.class)
     public MigrationService flywayMigrationService() {
@@ -57,6 +70,7 @@ public class DatabaseMigrationAutoConfiguration {
     }
 
     @Bean
+    @Primary
     @ConditionalOnProperty(prefix = "db.migration", name = "type", havingValue = "liquibase")
     @ConditionalOnMissingBean(MigrationService.class)
     public MigrationService liquibaseMigrationService() {

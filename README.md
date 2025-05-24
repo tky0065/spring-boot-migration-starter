@@ -1,151 +1,181 @@
-# Spring Boot Migration Starter Documentation
+# Spring Boot Migration Starter
 
-## Overview
-Spring Boot Migration Starter is a library that provides seamless integration of database migration tools (Flyway and Liquibase) in Spring Boot applications.
+Un starter Spring Boot qui simplifie la configuration et l'utilisation des outils de migration de base de données. Ce starter prend en charge à la fois Flyway et Liquibase, permettant aux développeurs de choisir facilement leur solution préférée via une configuration simple.
 
-## Table of Contents
-- [Installation](#installation)
-- [Features](#features)
-- [Configuration](#configuration)
-- [Usage](#usage)
-- [Migration Tools](#migration-tools)
-- [Advanced Usage](#advanced-usage)
-- [Best Practices](#best-practices)
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.tky0065/spring-boot-migration-starter.svg)](https://central.sonatype.com/artifact/io.github.tky0065/spring-boot-migration-starter)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Java Version](https://img.shields.io/badge/Java-21-blue.svg)](https://www.oracle.com/java/technologies/javase/jdk21-archive-downloads.html)
+
+## Caractéristiques
+
+- Configuration automatique pour Flyway et Liquibase
+- Possibilité de basculer facilement entre Flyway et Liquibase
+- Génération automatique des templates de migration initiaux
+- Configuration personnalisable via des propriétés simples
+- Intégration transparente avec Spring Boot
+
+## Prérequis
+
+- Java 21 ou supérieur
+- Spring Boot 3.x
 
 ## Installation
 
-Add to your `pom.xml`:
+Ajoutez la dépendance à votre projet Maven :
 
 ```xml
 <dependency>
     <groupId>io.github.tky0065</groupId>
     <artifactId>spring-boot-migration-starter</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.0.3</version>
 </dependency>
 ```
 
-## Features
-- Automatic configuration for both Flyway and Liquibase
-- Support for multiple database types
-- Migration script templates
-- Configurable migration strategies
-- Spring Boot auto-configuration support
+Ou pour Gradle :
+
+```gradle
+implementation 'io.github.tky0065:spring-boot-migration-starter:0.0.3'
+```
 
 ## Configuration
 
-### Basic Configuration (application.yml)
-```yaml
-db:
-  migration:
-    type: flyway  # or 'liquibase'
-    enabled: true
-    locations: classpath:db/migration
-```
+Le starter offre plusieurs options configurables dans votre fichier `application.properties` ou `application.yml`.
 
-### Advanced Configuration
+### Configuration YAML
+
 ```yaml
 db:
   migration:
-    type: flyway
+    type: flyway  # ou "liquibase"
+    enabled: true
+    locations:
+      - classpath:db/migration
+      - classpath:db/changelog
     baseline-on-migrate: true
     validate-on-migrate: true
     clean-disabled: true
-    locations:
-      - classpath:db/migration
-      - classpath:db/specific
+    change-log-path: classpath:db/changelog/db.changelog-master.xml  # Pour Liquibase uniquement
 ```
 
-## Usage
+### Configuration Properties
 
-### Basic Migration Example
-
-1. **Create Migration Directory**:
-```bash
-mkdir -p src/main/resources/db/migration
+```properties
+db.migration.type=flyway
+db.migration.enabled=true
+db.migration.locations=classpath:db/migration
+db.migration.baseline-on-migrate=true
+db.migration.validate-on-migrate=true
+db.migration.clean-disabled=true
+db.migration.change-log-path=classpath:db/changelog/db.changelog-master.xml
 ```
 
-2. **Create First Migration**:
+## Options de Configuration
+
+| Propriété | Description | Valeur par défaut |
+|-----------|-------------|-------------------|
+| `db.migration.type` | Type d'outil de migration (flyway ou liquibase) | `flyway` |
+| `db.migration.enabled` | Active ou désactive les migrations | `true` |
+| `db.migration.locations` | Chemin vers les scripts de migration | - |
+| `db.migration.baseline-on-migrate` | Pour Flyway : Initialiser la ligne de base si nécessaire | `true` |
+| `db.migration.validate-on-migrate` | Pour Flyway : Valider les migrations avant exécution | `true` |
+| `db.migration.clean-disabled` | Pour Flyway : Désactiver la commande clean | `true` |
+| `db.migration.change-log-path` | Pour Liquibase : Chemin vers le fichier changelog principal | - |
+
+## Utilisation
+
+### Avec Flyway (par défaut)
+
+1. Ajoutez le starter à votre projet
+2. Créez vos scripts de migration dans `src/main/resources/db/migration`
+3. Les scripts seront automatiquement exécutés au démarrage de l'application
+
+Exemple de script Flyway :
 ```sql
--- V1__init_schema.sql
+-- V1__Create_users_table.sql
 CREATE TABLE users (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     username VARCHAR(255) NOT NULL,
-    email VARCHAR(255) UNIQUE NOT NULL,
+    email VARCHAR(255) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 ```
 
-### Liquibase Example
-```yaml
-# db/changelog/db.changelog-master.yaml
-databaseChangeLog:
-  - changeSet:
-      id: 1
-      author: enokdev
-      changes:
-        - createTable:
-            tableName: users
-            columns:
-              - column:
-                  name: id
-                  type: BIGINT
-                  autoIncrement: true
-                  constraints:
-                    primaryKey: true
+### Avec Liquibase
+
+1. Ajoutez le starter à votre projet
+2. Configurez `db.migration.type=liquibase`
+3. Créez vos changelogs dans `src/main/resources/db/changelog`
+4. Les migrations seront automatiquement exécutées au démarrage de l'application
+
+Exemple de changelog Liquibase :
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.25.xsd">
+
+    <changeSet id="1" author="enokdev">
+        <createTable tableName="users">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="username" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="email" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP"/>
+        </createTable>
+    </changeSet>
+</databaseChangeLog>
 ```
 
-## Migration Tools
+## Services disponibles
 
-### Flyway
-- Version-based migrations
-- SQL and Java-based migrations
-- Automatic schema creation
-- Baseline support
+Le starter fournit ces services injectables :
 
-### Liquibase
-- XML, YAML, JSON, or SQL formats
-- Rollback support
-- Contextual migrations
-- Preconditions
+### MigrationService
 
-## Advanced Usage
+Interface commune pour les opérations de migration :
 
-### Custom Migration Scripts
 ```java
-@Component
-public class CustomMigration {
-    @Bean
-    public FlywayMigrationStrategy flywayMigrationStrategy() {
-        return flyway -> {
-            // Custom migration logic
-            flyway.baseline();
-            flyway.migrate();
-        };
-    }
-}
+@Autowired
+private MigrationService migrationService;
+
+// Exécuter les migrations
+migrationService.migrate();
+
+// Valider les migrations
+migrationService.validate();
+
+// Réparer les métadonnées de migration (si supporté)
+migrationService.repair();
 ```
 
-## Best Practices
+## Avantages par rapport à la configuration manuelle
 
-1. **Version Control**
-   - Keep migrations in version control
-   - Use descriptive names
-   - Never modify existing migrations
+- Configuration automatique basée sur des propriétés simples
+- Bascule facile entre Flyway et Liquibase sans changer le code
+- Génération de templates de migration à l'initialisation
+- Paramètres pré-configurés avec des valeurs recommandées
 
-2. **Migration Strategy**
-   - One change per migration
-   - Test migrations thoroughly
-   - Use meaningful version numbers
+## Contribuer
 
-3. **Security**
-   - Secure sensitive data
-   - Use environment variables
-   - Implement proper access control
+Les contributions sont les bienvenues ! N'hésitez pas à ouvrir une issue ou un pull request sur GitHub.
 
-## Support
-- GitHub Issues: [Project Issues](https://github.com/tky0065/spring-boot-migration-starter/issues)
-- Documentation: [Wiki](https://github.com/tky0065/spring-boot-migration-starter/wiki)
+1. Fork le projet
+2. Créez une branche pour votre fonctionnalité (`git checkout -b feature/amazing-feature`)
+3. Committez vos changements (`git commit -m 'Add some amazing feature'`)
+4. Push sur la branche (`git push origin feature/amazing-feature`)
+5. Ouvrez un Pull Request
 
 ## License
-MIT License - See [LICENSE](http://www.opensource.org/licenses/mit-license.php) for details.# Spring Boot Migration Starter Documentation
 
+Ce projet est distribué sous la licence MIT. Voir le fichier `LICENSE` pour plus d'informations.
+
+## Auteurs
+
+- [enokdev](https://enok-dev.vercel.app/) - Créateur et mainteneur principal
