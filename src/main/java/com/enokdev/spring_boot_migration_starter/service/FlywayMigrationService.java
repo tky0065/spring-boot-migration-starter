@@ -1,35 +1,57 @@
 package com.enokdev.spring_boot_migration_starter.service;
 
+import com.enokdev.spring_boot_migration_starter.config.MigrationProperties;
 import org.flywaydb.core.Flyway;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 import javax.sql.DataSource;
 
+@Service
 public class FlywayMigrationService implements MigrationService {
     
     @Autowired
     private DataSource dataSource;
 
+    @Autowired
+    private MigrationProperties properties;
+
     @Override
     public void migrate() {
-        Flyway flyway = Flyway.configure()
-                .dataSource(dataSource)
-                .load();
+        if (!properties.isEnabled()) {
+            return;
+        }
+
+        Flyway flyway = configureFlyway();
         flyway.migrate();
     }
 
     @Override
     public void validate() {
-        Flyway flyway = Flyway.configure()
-                .dataSource(dataSource)
-                .load();
+        if (!properties.isEnabled()) {
+            return;
+        }
+
+        Flyway flyway = configureFlyway();
         flyway.validate();
     }
 
     @Override
     public void repair() {
-        Flyway flyway = Flyway.configure()
-                .dataSource(dataSource)
-                .load();
+        if (!properties.isEnabled()) {
+            return;
+        }
+
+        Flyway flyway = configureFlyway();
         flyway.repair();
+    }
+
+    private Flyway configureFlyway() {
+        return Flyway.configure()
+                .dataSource(dataSource)
+                .locations(properties.getLocations().toArray(new String[0]))
+                .baselineOnMigrate(properties.isBaselineOnMigrate())
+                .validateOnMigrate(properties.isValidateOnMigrate())
+                .cleanDisabled(properties.isCleanDisabled())
+                .load();
     }
 }

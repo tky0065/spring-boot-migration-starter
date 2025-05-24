@@ -9,7 +9,7 @@
         <version>3.4.4</version>
         <relativePath/>
     </parent>
-    
+
     <!-- Update groupId to match your approved namespace -->
     <groupId>io.github.tky0065</groupId>
     <artifactId>spring-boot-migration-starter</artifactId>
@@ -30,7 +30,8 @@
             <name>enokdev</name>
             <email>enokdev.bf@gmail.com</email>
             <organization>Enokdev</organization>
-            <organizationUrl>https://your-organization.com</organizationUrl>
+            <organizationUrl>https://enok-dev.vercel.app/</organizationUrl>
+
         </developer>
     </developers>
 
@@ -40,16 +41,6 @@
         <url>https://github.com/tky0065/spring-boot-migration-starter/tree/main</url>
     </scm>
 
-    <distributionManagement>
-        <snapshotRepository>
-            <id>ossrh</id>
-            <url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
-        </snapshotRepository>
-        <repository>
-            <id>ossrh</id>
-            <url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/</url>
-        </repository>
-    </distributionManagement>
     <properties>
         <java.version>21</java.version>
         <flyway.version>9.21.1</flyway.version>
@@ -96,14 +87,14 @@
     <build>
         <plugins>
             <plugin>
-                <groupId>org.sonatype.plugins</groupId>
-                <artifactId>nexus-staging-maven-plugin</artifactId>
-                <version>1.6.13</version>
+                <groupId>org.sonatype.central</groupId>
+                <artifactId>central-publishing-maven-plugin</artifactId>
+                <version>0.7.0</version>
                 <extensions>true</extensions>
                 <configuration>
-                    <serverId>ossrh</serverId>
-                    <nexusUrl>https://s01.oss.sonatype.org/</nexusUrl>
-                    <autoReleaseAfterClose>true</autoReleaseAfterClose>
+                    <publishingServerId>central</publishingServerId>
+                    <autoPublish>true</autoPublish>
+                    <waitUntil>published</waitUntil>
                 </configuration>
             </plugin>
             <plugin>
