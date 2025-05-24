@@ -41,9 +41,28 @@ public class DatabaseMigrationAutoConfiguration {
         if ("liquibase".equalsIgnoreCase(properties.getType())) {
             System.setProperty("spring.flyway.enabled", "false");
             System.setProperty("spring.liquibase.enabled", String.valueOf(properties.isEnabled()));
+
+            // Propager les configurations Liquibase si besoin
+            if (properties.getChangeLogPath() != null) {
+                System.setProperty("spring.liquibase.change-log", properties.getChangeLogPath());
+            }
         } else {
+            // Configuration pour Flyway
             System.setProperty("spring.liquibase.enabled", "false");
             System.setProperty("spring.flyway.enabled", String.valueOf(properties.isEnabled()));
+
+            // Propager les paramètres critiques de Flyway
+            logger.info("Setting Flyway baselineOnMigrate to: {}", properties.isBaselineOnMigrate());
+            System.setProperty("spring.flyway.baseline-on-migrate", String.valueOf(properties.isBaselineOnMigrate()));
+            System.setProperty("spring.flyway.validate-on-migrate", String.valueOf(properties.isValidateOnMigrate()));
+            System.setProperty("spring.flyway.clean-disabled", String.valueOf(properties.isCleanDisabled()));
+
+            // Propager les locations si définies
+            if (!properties.getLocations().isEmpty()) {
+                String locations = String.join(",", properties.getLocations());
+                logger.info("Setting Flyway locations to: {}", locations);
+                System.setProperty("spring.flyway.locations", locations);
+            }
         }
     }
 
