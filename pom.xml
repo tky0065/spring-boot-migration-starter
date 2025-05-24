@@ -13,7 +13,7 @@
     <!-- Update groupId to match your approved namespace -->
     <groupId>io.github.tky0065</groupId>
     <artifactId>spring-boot-migration-starter</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.0.2</version>
     <name>Spring Boot Migration Starter</name>
     <description>A Spring Boot Starter for automatic database migrations with Flyway and Liquibase</description>
     <url>https://github.com/tky0065/spring-boot-migration-starter</url>
@@ -40,6 +40,7 @@
         <developerConnection>scm:git:ssh://github.com:tky0065/spring-boot-migration-starter.git</developerConnection>
         <url>https://github.com/tky0065/spring-boot-migration-starter/tree/main</url>
     </scm>
+
 
     <properties>
         <java.version>21</java.version>
@@ -95,6 +96,22 @@
                     <publishingServerId>central</publishingServerId>
                 </configuration>
             </plugin>
+
+            <!--            javadoc-->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>3.3.0</version>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <!--            source-->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
@@ -108,23 +125,11 @@
                     </execution>
                 </executions>
             </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-javadoc-plugin</artifactId>
-                <version>3.5.0</version>
-                <executions>
-                    <execution>
-                        <id>attach-javadocs</id>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
+            <!--            pom, .asc-->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-gpg-plugin</artifactId>
-                <version>3.1.0</version>
+                <version>1.6</version>
                 <executions>
                     <execution>
                         <id>sign-artifacts</id>
