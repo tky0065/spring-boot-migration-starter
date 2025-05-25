@@ -4,7 +4,9 @@ import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Data
 @ConfigurationProperties(prefix = "db.migration")
@@ -18,6 +20,11 @@ public class MigrationProperties {
      * Migration script locations (can be a single string or a list)
      */
     private List<String> locations = new ArrayList<>();
+
+    /**
+     * Single location for backward compatibility
+     */
+    private String location;
 
     /**
      * Whether database migration is enabled
@@ -40,9 +47,39 @@ public class MigrationProperties {
     private boolean cleanDisabled = true;
 
     /**
+     * Schema name for Flyway migrations
+     */
+    private String schema;
+
+    /**
+     * The baseline version (for Flyway)
+     */
+    private String baselineVersion = "1";
+
+    /**
      * Changelog path for Liquibase
      */
     private String changeLogPath;
+
+    /**
+     * Contexts for Liquibase
+     */
+    private String contexts;
+
+    /**
+     * Labels for Liquibase
+     */
+    private String labels;
+
+    /**
+     * Additional Flyway configuration properties
+     */
+    private Map<String, String> flywayProperties = new HashMap<>();
+
+    /**
+     * Additional Liquibase configuration properties
+     */
+    private Map<String, String> liquibaseProperties = new HashMap<>();
 
     /**
      * Whether SQL identifiers should be quoted
@@ -51,48 +88,12 @@ public class MigrationProperties {
     private boolean quoteIdentifiers = false;
 
     /**
-     * Whether to auto-generate migration files when entity changes are detected
+     * Whether to automatically generate migration scripts from entity changes
      */
     private boolean autoGenerateMigrations = false;
 
     /**
-     * Base packages to scan for JPA entities
+     * Directory where to save generated migrations
      */
-    private List<String> entityBasePackages = new ArrayList<>();
-
-    /**
-     * Main application class (used to detect base package if not specified)
-     */
-    private String mainApplicationClass;
-
-    /**
-     * Hibernate dialect to use for schema generation
-     */
-    private String dialect = "org.hibernate.dialect.H2Dialect";
-
-    /**
-     * Directory for Liquibase changelog files
-     */
-    private String liquibaseChangelogDir = "src/main/resources/db/changelog";
-
-    /**
-     * Master changelog file for Liquibase
-     */
-    private String liquibaseMasterChangelog = "src/main/resources/db/changelog/db.changelog-master.xml";
-
-    /**
-     * Setter for single location as string for backward compatibility
-     */
-    public void setLocation(String location) {
-        this.locations.clear();
-        this.locations.add(location);
-    }
-
-    /**
-     * Get the first location or a default if none exists
-     */
-    public String getLocation() {
-        return locations.isEmpty() ? "classpath:db/migration" : locations.get(0);
-    }
+    private String generatedMigrationsPath = "src/main/resources/db/migration";
 }
-

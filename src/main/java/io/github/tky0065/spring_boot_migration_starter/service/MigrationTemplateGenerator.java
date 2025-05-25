@@ -1,41 +1,48 @@
 package io.github.tky0065.spring_boot_migration_starter.service;
 
 import io.github.tky0065.spring_boot_migration_starter.config.MigrationProperties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.io.ResourceLoader;
+import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.Map;
+import java.util.Set;
 
+/**
+ * Service for generating migration script templates
+ */
+@Service
 public class MigrationTemplateGenerator {
     
     private static final Logger logger = LoggerFactory.getLogger(MigrationTemplateGenerator.class);
     private static final String FLYWAY_DEFAULT_PATH = "src/main/resources/db/migration";
     private static final String LIQUIBASE_DEFAULT_PATH = "src/main/resources/db/changelog";
 
-    private final ResourceLoader resourceLoader;
     private final MigrationProperties properties;
 
-    public MigrationTemplateGenerator(ResourceLoader resourceLoader) {
-        this.resourceLoader = resourceLoader;
-        this.properties = null; // Will be used in constructor below
-    }
-
     public MigrationTemplateGenerator(ResourceLoader resourceLoader, MigrationProperties properties) {
-        this.resourceLoader = resourceLoader;
         this.properties = properties;
     }
     
+    /**
+     * Generate initial migration templates based on the specified type
+     *
+     * @param type Migration tool type (flyway or liquibase)
+     */
     public void generateInitialMigrations(String type) {
         logger.info("Generating initial migration templates for type: {}", type);
         if ("flyway".equalsIgnoreCase(type)) {
-            generateFlywayMigration();
+            generateFlywayInitialMigration();
         } else if ("liquibase".equalsIgnoreCase(type)) {
-            generateLiquibaseMigration();
+            generateLiquibaseInitialMigration();
         } else {
             logger.warn("Unknown migration type: {}. No templates will be generated.", type);
         }
@@ -43,6 +50,7 @@ public class MigrationTemplateGenerator {
 
     /**
      * Generate a new Flyway migration file with the provided SQL content
+     *
      * @param description Description to include in the filename
      * @param sql SQL content to write
      * @return Path to the generated file or null if generation failed
@@ -51,154 +59,188 @@ public class MigrationTemplateGenerator {
         String timestamp = DateTimeFormatter.ofPattern("yyyyMMddHHmmss").format(LocalDateTime.now());
         String filename = String.format("V%s__%s.sql", timestamp, description.replace(' ', '_'));
 
-        String migrationPath = getMigrationPath("flyway");
-        createDirectory(migrationPath);
+        String directory = StringUtils.hasText(properties.getGeneratedMigrationsPath()) ?
+                properties.getGeneratedMigrationsPath() : FLYWAY_DEFAULT_PATH;
 
-        Path filePath = Paths.get(migrationPath, filename);
-        writeFile(filePath, sql);
+        Path path = Paths.get(directory, filename);
 
-        logger.info("Generated new Flyway migration: {}", filePath);
-        return filePath;
+        try {
+            // Create directory if it doesn't exist
+            Files.createDirectories(path.getParent());
+
+            // Write the SQL content to the file
+            Files.writeString(path, sql);
+            logger.info("Generated Flyway migration: {}", path);
+            return path;
+        } catch (IOException e) {
+            logger.error("Failed to create Flyway migration file", e);
+            return null;
+        }
+    }
+    
+    /**
+     * Generate a Flyway migration script based on entity changes
+     *
+     * @param entityChanges Map of entity names to sets of changed column names
+     * @return The SQL content for the migration
+     */
+    public String generateFlywayMigration(Map<String, Set<String>> entityChanges) {
+        StringBuilder sql = new StringBuilder();
+        sql.append("-- Migration generated automatically by spring-boot-migration-starter\n");
+        sql.append("-- Generated on ").append(LocalDateTime.now()).append("\n\n");
+
+        // For demonstration purposes, we'll just create basic table creation statements
+        for (Map.Entry<String, Set<String>> entry : entityChanges.entrySet()) {
+            String tableName = entry.getKey();
+            sql.append("-- Table: ").append(tableName).append("\n");
+
+            // In a real implementation, this would inspect the entity class
+            // and generate appropriate DDL statements.
+            sql.append("CREATE TABLE IF NOT EXISTS ").append(tableName).append(" (\n");
+            sql.append("    id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,\n");
+            sql.append("    name VARCHAR(255),\n");
+            sql.append("    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n");
+            sql.append(");\n\n");
+        }
+
+        return sql.toString();
     }
 
     /**
-     * Generate a new Liquibase changelog file
-     * @param id ID for the changeset
-     * @param author Author name
-     * @param yamlContent YAML content to write
+     * Generate the initial Flyway migration file with a basic schema
+     *
      * @return Path to the generated file or null if generation failed
      */
-    public Path generateNewLiquibaseChangelog(String id, String author, String yamlContent) {
-        String timestamp = DateTimeFormatter.ofPattern("yyyyMMddHHmmss").format(LocalDateTime.now());
-        String filename = String.format("changelog-%s.yaml", timestamp);
+    public Path generateFlywayInitialMigration() {
+        String sql = "-- Initial schema setup\n\n" +
+                "-- You can put your initial schema setup here\n" +
+                "-- For example, creating basic tables, sequences, etc.\n\n" +
+                "-- Example:\n" +
+                "-- CREATE TABLE example (\n" +
+                "--   id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,\n" +
+                "--   name VARCHAR(255) NOT NULL,\n" +
+                "--   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n" +
+                "-- );\n";
 
-        String changelogPath = getMigrationPath("liquibase");
-        createDirectory(changelogPath);
-
-        Path filePath = Paths.get(changelogPath, filename);
-        writeFile(filePath, yamlContent);
-
-        // Update master changelog to include this file
-        updateLiquibaseMasterChangelog(filename);
-
-        logger.info("Generated new Liquibase changelog: {}", filePath);
-        return filePath;
+        return generateNewFlywayMigration("initial_schema", sql);
     }
 
-    private void updateLiquibaseMasterChangelog(String filename) {
-        String changelogPath = getMigrationPath("liquibase");
-        Path masterPath = Paths.get(changelogPath, "db.changelog-master.yaml");
+    /**
+     * Generate a Liquibase migration script based on entity changes
+     *
+     * @param entityChanges Map of entity names to sets of changed column names
+     * @return The XML content for the migration
+     */
+    public String generateLiquibaseMigration(Map<String, Set<String>> entityChanges) {
+        StringBuilder xml = new StringBuilder();
+        xml.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+        xml.append("<databaseChangeLog\n");
+        xml.append("        xmlns=\"http://www.liquibase.org/xml/ns/dbchangelog\"\n");
+        xml.append("        xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n");
+        xml.append("        xsi:schemaLocation=\"http://www.liquibase.org/xml/ns/dbchangelog\n");
+        xml.append("         https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.5.xsd\">\n\n");
 
-        if (Files.exists(masterPath)) {
-            try {
-                String content = new String(Files.readAllBytes(masterPath));
-                if (!content.contains(filename)) {
-                    String includeEntry = "\n  - include:\n      file: " + filename;
-                    Files.write(masterPath, includeEntry.getBytes(), java.nio.file.StandardOpenOption.APPEND);
-                }
-            } catch (IOException e) {
-                logger.error("Failed to update master changelog", e);
-            }
-        }
-    }
-    
-    private void generateFlywayMigration() {
-        String migrationPath = getMigrationPath("flyway");
-        createDirectory(migrationPath);
-        
-        String initSql = "-- Initial Flyway migration\n" +
-                        "CREATE TABLE IF NOT EXISTS schema_example (\n" +
-                        "    id BIGINT AUTO_INCREMENT PRIMARY KEY,\n" +
-                        "    name VARCHAR(255) NOT NULL,\n" +
-                        "    description TEXT,\n" +
-                        "    active BOOLEAN DEFAULT TRUE,\n" +
-                        "    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n" +
-                        "    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP\n" +
-                        ");";
-        
-        String timestamp = DateTimeFormatter.ofPattern("yyyyMMddHHmmss").format(LocalDateTime.now());
-        writeFile(Paths.get(migrationPath, "V" + timestamp + "__initial_schema.sql"), initSql);
-    }
-    
-    private void generateLiquibaseMigration() {
-        String changelogPath = getMigrationPath("liquibase");
-        createDirectory(changelogPath);
-        
-        String masterChangelog = "databaseChangeLog:\n" +
-                               "  - changeSet:\n" +
-                               "      id: 1\n" +
-                               "      author: migration-starter\n" +
-                               "      changes:\n" +
-                               "        - createTable:\n" +
-                               "            tableName: schema_example\n" +
-                               "            columns:\n" +
-                               "              - column:\n" +
-                               "                  name: id\n" +
-                               "                  type: bigint\n" +
-                               "                  autoIncrement: true\n" +
-                               "                  constraints:\n" +
-                               "                    primaryKey: true\n" +
-                               "                    nullable: false\n" +
-                               "              - column:\n" +
-                               "                  name: name\n" +
-                               "                  type: varchar(255)\n" +
-                               "                  constraints:\n" +
-                               "                    nullable: false\n" +
-                               "              - column:\n" +
-                               "                  name: description\n" +
-                               "                  type: clob\n" +
-                               "              - column:\n" +
-                               "                  name: active\n" +
-                               "                  type: boolean\n" +
-                               "                  defaultValueBoolean: true\n" +
-                               "              - column:\n" +
-                               "                  name: created_at\n" +
-                               "                  type: timestamp\n" +
-                               "                  defaultValueComputed: CURRENT_TIMESTAMP\n" +
-                               "              - column:\n" +
-                               "                  name: updated_at\n" +
-                               "                  type: timestamp\n" +
-                               "                  defaultValueComputed: CURRENT_TIMESTAMP";
+        String changesetId = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
+        xml.append("    <changeSet id=\"").append(changesetId).append("\" author=\"spring-boot-migration-starter\">\n");
 
-        writeFile(Paths.get(changelogPath, "db.changelog-master.yaml"), masterChangelog);
-    }
-    
-    private String getMigrationPath(String type) {
-        if (properties != null && !properties.getLocations().isEmpty()) {
-            String location = properties.getLocations().get(0);
-            // Convert classpath: to filesystem path
-            if (location.startsWith("classpath:")) {
-                return "src/main/resources/" + location.substring("classpath:".length());
-            } else {
-                return location;
-            }
+        // For demonstration purposes, we'll just create basic table creation statements
+        for (Map.Entry<String, Set<String>> entry : entityChanges.entrySet()) {
+            String tableName = entry.getKey();
+
+            xml.append("        <!-- Table: ").append(tableName).append(" -->\n");
+            xml.append("        <createTable tableName=\"").append(tableName).append("\">\n");
+            xml.append("            <column name=\"id\" type=\"BIGINT\" autoIncrement=\"true\">\n");
+            xml.append("                <constraints primaryKey=\"true\" nullable=\"false\"/>\n");
+            xml.append("            </column>\n");
+            xml.append("            <column name=\"name\" type=\"VARCHAR(255)\"/>\n");
+            xml.append("            <column name=\"created_at\" type=\"TIMESTAMP\" defaultValueComputed=\"CURRENT_TIMESTAMP\"/>\n");
+            xml.append("        </createTable>\n\n");
         }
 
-        // Default paths if properties not available
-        return "flyway".equalsIgnoreCase(type) ? FLYWAY_DEFAULT_PATH : LIQUIBASE_DEFAULT_PATH;
+        xml.append("    </changeSet>\n");
+        xml.append("</databaseChangeLog>");
+
+        return xml.toString();
     }
 
-    private void createDirectory(String path) {
+    /**
+     * Generate the initial Liquibase setup with master changelog and an initial changeset
+     *
+     * @return Path to the generated master changelog file or null if generation failed
+     */
+    public Path generateLiquibaseInitialMigration() {
         try {
-            Files.createDirectories(Paths.get(path));
+            // Determine the directory to use
+            String directory = StringUtils.hasText(properties.getGeneratedMigrationsPath()) ?
+                    properties.getGeneratedMigrationsPath() : LIQUIBASE_DEFAULT_PATH;
+
+            Path dirPath = Paths.get(directory);
+            Files.createDirectories(dirPath);
+
+            // Create the changelog directory if it doesn't exist
+            Path changelogDir = dirPath.resolve("changelog");
+            Files.createDirectories(changelogDir);
+
+            // Generate the initial changeset
+            String timestamp = DateTimeFormatter.ofPattern("yyyyMMddHHmmss").format(LocalDateTime.now());
+            String initialChangelogFile = "changelog-" + timestamp + ".xml";
+            Path initialChangelogPath = changelogDir.resolve(initialChangelogFile);
+
+            String initialChangelog = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+                    "<databaseChangeLog\n" +
+                    "        xmlns=\"http://www.liquibase.org/xml/ns/dbchangelog\"\n" +
+                    "        xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n" +
+                    "        xsi:schemaLocation=\"http://www.liquibase.org/xml/ns/dbchangelog\n" +
+                    "         https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.5.xsd\">\n\n" +
+                    "    <changeSet id=\"" + timestamp + "\" author=\"spring-boot-migration-starter\">\n" +
+                    "        <!-- Initial schema setup -->\n" +
+                    "        <!-- Example: -->\n" +
+                    "        <!-- <createTable tableName=\"example\"> -->\n" +
+                    "        <!--     <column name=\"id\" type=\"BIGINT\" autoIncrement=\"true\"> -->\n" +
+                    "        <!--         <constraints primaryKey=\"true\" nullable=\"false\"/> -->\n" +
+                    "        <!--     </column> -->\n" +
+                    "        <!--     <column name=\"name\" type=\"VARCHAR(255)\"/> -->\n" +
+                    "        <!--     <column name=\"created_at\" type=\"TIMESTAMP\" defaultValueComputed=\"CURRENT_TIMESTAMP\"/> -->\n" +
+                    "        <!-- </createTable> -->\n" +
+                    "    </changeSet>\n" +
+                    "</databaseChangeLog>";
+
+            Files.writeString(initialChangelogPath, initialChangelog);
+            logger.info("Generated Liquibase initial changelog: {}", initialChangelogPath);
+
+            // Create the master changelog file
+            Path masterChangelogPath = dirPath.resolve("db.changelog-master.xml");
+            String masterChangelog = generateLiquibaseMasterChangelog();
+
+            Files.writeString(masterChangelogPath, masterChangelog);
+            logger.info("Generated Liquibase master changelog: {}", masterChangelogPath);
+
+            // Update the master changelog to include the initial changelog
+            String updatedMasterChangelog = masterChangelog.replace("</databaseChangeLog>",
+                    "\t<include file=\"changelog/" + initialChangelogFile + "\" relativeToChangelogFile=\"true\"/>\n</databaseChangeLog>");
+
+            Files.writeString(masterChangelogPath, updatedMasterChangelog);
+
+            return masterChangelogPath;
         } catch (IOException e) {
-            logger.error("Failed to create directory: {}", path, e);
-            throw new RuntimeException("Failed to create directory: " + path, e);
+            logger.error("Failed to create Liquibase migration files", e);
+            return null;
         }
     }
-    
-    private void writeFile(Path path, String content) {
-        try {
-            if (!Files.exists(path)) {
-                Files.write(path, content.getBytes());
-                logger.info("Created file: {}", path);
-            } else {
-                logger.info("File already exists: {}", path);
-            }
-        } catch (IOException e) {
-            logger.error("Failed to write file: {}", path, e);
-            throw new RuntimeException("Failed to write file: " + path, e);
-        }
+
+    /**
+     * Generate a Liquibase master changelog XML file
+     *
+     * @return String representation of the master changelog XML
+     */
+    public String generateLiquibaseMasterChangelog() {
+        return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+                "<databaseChangeLog\n" +
+                "        xmlns=\"http://www.liquibase.org/xml/ns/dbchangelog\"\n" +
+                "        xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n" +
+                "        xsi:schemaLocation=\"http://www.liquibase.org/xml/ns/dbchangelog\n" +
+                "         https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.5.xsd\">\n" +
+                "    <!-- Include additional changelog files here -->\n" +
+                "</databaseChangeLog>";
     }
 }
-

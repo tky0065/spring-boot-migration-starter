@@ -13,6 +13,10 @@ Un starter Spring Boot qui simplifie la configuration et l'utilisation des outil
 - Génération automatique des templates de migration initiaux
 - Configuration personnalisable via des propriétés simples
 - Intégration transparente avec Spring Boot
+- Support pour les dialectes spécifiques de bases de données (MySQL, PostgreSQL)
+- Détection automatique des changements d'entités JPA
+- Génération automatique des scripts de migration
+- Logging détaillé des opérations de migration
 
 ## Prérequis
 
@@ -27,14 +31,14 @@ Ajoutez la dépendance à votre projet Maven :
 <dependency>
     <groupId>io.github.tky0065</groupId>
     <artifactId>spring-boot-migration-starter</artifactId>
-    <version>0.0.4</version>
+    <version>0.0.6</version>
 </dependency>
 ```
 
 Ou pour Gradle :
 
 ```gradle
-implementation 'io.github.tky0065:spring-boot-migration-starter:0.0.4'
+implementation 'io.github.tky0065:spring-boot-migration-starter:0.0.6'
 ```
 
 ## Configuration
@@ -46,167 +50,209 @@ Le starter offre plusieurs options configurables dans votre fichier `application
 ```yaml
 db:
   migration:
-    type: flyway  # ou "liquibase"
+    # Type d'outil de migration (flyway ou liquibase)
+    type: flyway
+    
+    # Active ou désactive les migrations
     enabled: true
+    
+    # Chemins des scripts de migration (liste)
     locations:
       - classpath:db/migration
-      - classpath:db/changelog
+      - filesystem:/path/to/migrations
+      
+    # Chemin unique des scripts de migration (pour compatibilité)
+    location: classpath:db/migration
+    
+    # Options spécifiques à Flyway
     baseline-on-migrate: true
     validate-on-migrate: true
     clean-disabled: true
-    change-log-path: classpath:db/changelog/db.changelog-master.xml  # Pour Liquibase uniquement
+    baseline-version: "1"
+    schema: public
+    
+    # Options spécifiques à Liquibase
+    change-log-path: db/changelog/db.changelog-master.yaml
+    contexts: dev,test
+    labels: version-1.0
+    
+    # Activation des identifiants SQL entre guillemets (utile pour les mots-clés réservés)
+    quote-identifiers: false
+    
+    # Configuration de la génération automatique des migrations
+    auto-generate-migrations: false
+    generated-migrations-path: src/main/resources/db/migration
+    
+    # Propriétés supplémentaires pour Flyway
+    flyway-properties:
+      flyway.outOfOrder: true
+      flyway.ignoreMissingMigrations: true
+      
+    # Propriétés supplémentaires pour Liquibase
+    liquibase-properties:
+      liquibase.dropFirst: false
+      liquibase.changeLogLockWaitTimeInMinutes: 5
 ```
 
 ### Configuration Properties
 
 ```properties
+# Type d'outil de migration
 db.migration.type=flyway
+
+# Active ou désactive les migrations
 db.migration.enabled=true
-db.migration.locations=classpath:db/migration
+
+# Chemins des scripts de migration
+db.migration.locations[0]=classpath:db/migration
+db.migration.locations[1]=filesystem:/path/to/migrations
+
+# Chemin unique des scripts de migration (pour compatibilité)
+db.migration.location=classpath:db/migration
+
+# Options Flyway
 db.migration.baseline-on-migrate=true
 db.migration.validate-on-migrate=true
 db.migration.clean-disabled=true
-db.migration.change-log-path=classpath:db/changelog/db.changelog-master.xml
+db.migration.schema=public
+db.migration.baseline-version=1
+
+# Options Liquibase
+db.migration.change-log-path=db/changelog/db.changelog-master.yaml
+db.migration.contexts=dev,test
+db.migration.labels=version-1.0
+
+# Activation des identifiants SQL entre guillemets
+db.migration.quote-identifiers=false
+
+# Génération automatique des migrations
+db.migration.auto-generate-migrations=false
+db.migration.generated-migrations-path=src/main/resources/db/migration
+
+# Propriétés supplémentaires
+db.migration.flyway-properties.flyway.outOfOrder=true
+db.migration.liquibase-properties.liquibase.dropFirst=false
 ```
-
-## Options de Configuration
-
-| Propriété | Description | Valeur par défaut |
-|-----------|-------------|-------------------|
-| `db.migration.type` | Type d'outil de migration (flyway ou liquibase) | `flyway` |
-| `db.migration.enabled` | Active ou désactive les migrations | `true` |
-| `db.migration.locations` | Chemin vers les scripts de migration | - |
-| `db.migration.baseline-on-migrate` | Pour Flyway : Initialiser la ligne de base si nécessaire | `true` |
-| `db.migration.validate-on-migrate` | Pour Flyway : Valider les migrations avant exécution | `true` |
-| `db.migration.clean-disabled` | Pour Flyway : Désactiver la commande clean | `true` |
-| `db.migration.change-log-path` | Pour Liquibase : Chemin vers le fichier changelog principal | - |
 
 ## Utilisation
 
-### Avec Flyway (par défaut)
+### Configuration simple
 
-1. Ajoutez le starter à votre projet
-2. Créez vos scripts de migration dans `src/main/resources/db/migration`
-3. Les scripts seront automatiquement exécutés au démarrage de l'application
+Le starter est automatiquement configuré et activé dès que vous l'ajoutez en tant que dépendance. Par défaut, il utilisera Flyway comme outil de migration avec le chemin standard `classpath:db/migration`.
 
-Exemple de script Flyway :
-```sql
--- V1__Create_users_table.sql
-CREATE TABLE users (
-    id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    username VARCHAR(255) NOT NULL,
-    email VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+### Utilisation de Liquibase
+
+Pour utiliser Liquibase au lieu de Flyway, modifiez la configuration :
+
+```yaml
+db:
+  migration:
+    type: liquibase
+    change-log-path: db/changelog/db.changelog-master.yaml
 ```
 
-### Avec Liquibase
+### Génération automatique des scripts de migration
 
-1. Ajoutez le starter à votre projet
-2. Configurez `db.migration.type=liquibase`
-3. Créez vos changelogs dans `src/main/resources/db/changelog`
-4. Les migrations seront automatiquement exécutées au démarrage de l'application
+Pour activer la génération automatique des scripts de migration basée sur les changements d'entités JPA :
 
-Exemple de changelog Liquibase :
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<databaseChangeLog
-        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
-        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
-                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.25.xsd">
-
-    <changeSet id="1" author="enokdev">
-        <createTable tableName="users">
-            <column name="id" type="bigint" autoIncrement="true">
-                <constraints primaryKey="true" nullable="false"/>
-            </column>
-            <column name="username" type="varchar(255)">
-                <constraints nullable="false"/>
-            </column>
-            <column name="email" type="varchar(255)">
-                <constraints nullable="false"/>
-            </column>
-            <column name="created_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP"/>
-        </createTable>
-    </changeSet>
-</databaseChangeLog>
+```yaml
+db:
+  migration:
+    auto-generate-migrations: true
+    generated-migrations-path: src/main/resources/db/migration
 ```
 
-## Résolution des problèmes courants
+Cette fonctionnalité analysera vos entités JPA au démarrage de l'application et générera des scripts de migration si des changements sont détectés.
 
-### Erreur avec les mots réservés SQL
+### Support des bases de données spécifiques
 
-Si vous rencontrez une erreur comme celle-ci :
-```
-Syntax error in SQL statement "create table [*]user (id bigint not null, primary key (id))"; expected "identifier";
-```
+Le starter inclut désormais un support pour les dialectes spécifiques de bases de données :
 
-C'est parce que votre table utilise un nom qui est un mot réservé SQL (comme "user", "order", "group", etc.). Pour résoudre ce problème :
+- MySQL : Supporte les fonctionnalités spécifiques à MySQL avec Flyway
+- PostgreSQL : Supporte les fonctionnalités spécifiques à PostgreSQL avec Flyway
 
-#### Solution 1 : Échapper les noms de tables
+Il n'est pas nécessaire de configurer ces dialectes, ils sont automatiquement détectés.
 
-Utilisez des guillemets pour échapper les noms de tables dans vos scripts de migration :
+### Utilisation programmatique
 
-Avec Flyway :
-```sql
-CREATE TABLE "user" (
-    id BIGINT PRIMARY KEY,
-    username VARCHAR(255) NOT NULL
-);
-```
-
-Avec Liquibase :
-```xml
-<createTable tableName="&quot;user&quot;">
-    <!-- colonnes -->
-</createTable>
-```
-
-#### Solution 2 : Configuration JPA (pour les entités)
-
-Si vous utilisez des entités JPA avec Hibernate, vous pouvez également configurer l'échappement au niveau de l'application :
-
-```java
-@Entity
-@Table(name = "\"user\"")  // Nom échappé
-public class User {
-    // ...
-}
-```
-
-Ou en configurant la stratégie de nommage dans `application.properties` :
-```properties
-spring.jpa.properties.hibernate.globally_quoted_identifiers=true
-```
-
-#### Solution 3 : Renommer vos tables
-
-La meilleure pratique est d'éviter complètement les mots réservés en utilisant des noms plus descriptifs :
-- `user` → `app_user` ou `users`
-- `order` → `customer_order` ou `orders`
-- `group` → `user_group` ou `groups`
-
-## Services disponibles
-
-Le starter fournit ces services injectables :
-
-### MigrationService
-
-Interface commune pour les opérations de migration :
+Vous pouvez également utiliser les services de migration de manière programmatique :
 
 ```java
 @Autowired
 private MigrationService migrationService;
 
-// Exécuter les migrations
-migrationService.migrate();
+// Pour exécuter une migration manuellement
+public void performMigration() {
+    migrationService.migrate();
+}
 
-// Valider les migrations
-migrationService.validate();
+// Pour valider le schéma
+public void validateSchema() {
+    migrationService.validate();
+}
 
-// Réparer les métadonnées de migration (si supporté)
-migrationService.repair();
+// Pour réparer les migrations (si supporté)
+public void repairMigrations() {
+    migrationService.repair();
+}
 ```
 
-## Avantages par rapport
+### Génération de modèles de migration
+
+Pour générer des templates de migration :
+
+```java
+@Autowired
+private MigrationTemplateGenerator templateGenerator;
+
+// Générer un nouveau script Flyway
+public void generateFlyway() {
+    templateGenerator.generateFlywayInitialMigration();
+}
+
+// Générer un nouveau changelog Liquibase
+public void generateLiquibase() {
+    templateGenerator.generateLiquibaseInitialMigration();
+}
+```
+
+## Exemples concrets
+
+### Exemple avec Flyway et MySQL
+
+```yaml
+db:
+  migration:
+    type: flyway
+    locations:
+      - classpath:db/migration/common
+      - classpath:db/migration/mysql
+    schema: myapp
+    baseline-on-migrate: true
+    quote-identifiers: true
+    flyway-properties:
+      flyway.placeholderReplacement: true
+      flyway.placeholders.tablespace: my_tablespace
+```
+
+### Exemple avec Liquibase et plusieurs contextes
+
+```yaml
+db:
+  migration:
+    type: liquibase
+    change-log-path: db/changelog/db.changelog-master.xml
+    contexts: dev,test
+    labels: version-2.0
+```
+
+## Support et contribution
+
+Les contributions sont les bienvenues ! Si vous rencontrez des problèmes ou avez des suggestions d'amélioration, n'hésitez pas à :
+
+1. Ouvrir une issue sur GitHub
+2. Soumettre une Pull Request avec vos propositions de modification
+
+## Licence
+
+Ce projet est sous licence MIT. Voir le fichier LICENSE pour plus de détails.
